@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dobot Webinterface</title>
+
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/fontawesome-free-7.1.0-web/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="/js/jquery-3.2.1.slim.min.js"></script>
+  <link href="/css/bootstrap4-toggle.min.css" rel="stylesheet">
+  <script src="/js/bootstrap4-toggle.min.js"></script>
+  <script src="/js/bootstrap.min.js"></script>
+
+  <style>
+    body {
+      background-color: #f8f9fa;
+      font-family: "Inter", system-ui, sans-serif;
+    }
+
+    .leiste {
+      background: linear-gradient(90deg, #003973 0%, #E5E5BE 100%);
+      color: white;
+      padding: 0.75rem 1rem;
+      border-radius: 0.4rem;
+      margin-top: 1rem;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .leiste h2 {
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .clickable-text {
+      color: #ffc107;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .sidebar {
+      background-color: white;
+      border-radius: 0.5rem;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+      padding: 1rem;
+      height: 85vh;
+    }
+
+    .sidebar .nav-link {
+      color: #333;
+      text-align: left;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .sidebar .nav-link i {
+      margin-right: 8px;
+      color: #007bff;
+    }
+
+    .sidebar .nav-link:hover {
+      background-color: #f1f5ff;
+      border-radius: 6px;
+      color: #007bff;
+    }
+
+    #webpageFrame {
+      border: none;
+      height: 85vh;
+      border-radius: 0.5rem;
+      background: #ffffff;
+      box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.05);
+    }
+
+    .bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background-color: #003973;
+      color: #ffffff;
+      text-align: center;
+      font-size: 0.9rem;
+      padding: 0.4rem;
+      box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2);
+    }
+
+    .bottom-bar span {
+      font-weight: 600;
+    }
+
+    .custom-switch label {
+      color: white;
+      font-weight: 500;
+      margin-left: 5px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container-xxl">
+    
+        <!-- Modal -->
+    <div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel"
+      aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header bg-danger text-white">
+            <h5 class="modal-title" id="errorModalLabel"><i class="fas fa-bug me-2"></i> Error Message</h5>
+          </div>
+          <div class="modal-body" id="errorModalBody"></div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-danger" data-bs-dismiss="modal"
+              onclick="clear_error()">Clear Error</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Header Bar -->
+    <div class="row align-items-center leiste">
+      <div class="col-lg-9">
+        <h2 class="mb-0"><i class="fas fa-robot me-2"></i> Dobot Control Panel</h2>
+      </div>
+      <div class="col-lg-1 text-end">
+        <button class="btn btn-light btn-sm fw-bold" onclick="reset_dobot()">
+          <i class="fas fa-power-off me-1"></i> Reset
+        </button>
+      </div>
+      <div class="col-lg-1 text-end">
+        <button class="btn btn-danger btn-sm fw-bold" onclick="get_error_message()" data-bs-toggle="modal" data-bs-target="#errorModal">
+          <i class="fas fa-exclamation-triangle me-1"></i> Error Log
+        </button>
+      </div>
+      <div class="col-lg-1 text-start">
+        <div class="form-check form-switch">
+                <input type="checkbox" checked data-toggle="toggle" data-onstyle="success" id="switchToggle" data-size="sm" onchange="toggle_dobot()">
+          
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="row mt-3">
+      <!-- Sidebar -->
+      <div class="col-lg-2">
+        <nav>
+          <div class="sidebar">
+            <ul class="nav flex-column">
+              <li class="nav-item mb-1">
+                <button class="nav-link btn" onclick="show_web_page('webpageFrame', 'home.html')">
+                  <i class="fas fa-home"></i>Home
+                </button>
+              </li>
+              <li class="nav-item mb-1">
+                <button class="nav-link btn" onclick="show_web_page('webpageFrame', 'calibration.html')">
+                  <i class="fas fa-cogs"></i>Dobot Calibration
+                </button>
+              </li>
+              <li class="nav-item mb-1">
+                <button class="nav-link btn" onclick="show_web_page('webpageFrame', 'object_detection.html')">
+                  <i class="fas fa-search"></i>Object Detection
+                </button>
+              </li>
+              <li class="nav-item mb-1">
+                <button class="nav-link btn" onclick="show_web_page('webpageFrame', 'object_classification.html')">
+                  <i class="fas fa-filter"></i>Object Classification
+                </button>
+              </li>
+              <li class="nav-item mb-1">
+                <button class="nav-link btn" onclick="show_web_page('webpageFrame', 'live_streaming.html')">
+                  <i class="fas fa-video"></i>Live Streaming
+                </button>
+              </li>
+              <hr>
+              <li class="nav-item mb-1">
+                <button class="nav-link btn" onclick="show_web_page('webpageFrame', 'camera_setting.html')">
+                  <i class="fas fa-camera"></i>Camera Settings
+                </button>
+              </li>
+              <li class="nav-item">
+                <button class="nav-link btn" onclick="show_web_page('webpageFrame', 'sorting.html')">
+                  <i class="fas fa-sort"></i>Sorting Positions
+                </button>
+              </li>
+            </ul>
+          </div>
+        </nav>
+      </div>
+
+      <!-- Main Iframe -->
+      <div class="col-lg-10">
+        <iframe id="webpageFrame" src="home.html" width="100%"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Bar -->
+  <div class="bottom-bar" id="coordBox">
+    X: <span id="xCoordinate">326.25</span> |
+    Y: <span id="yCoordinate">-13.15</span> |
+    Z: <span id="zCoordinate">170.15</span> |
+    R: <span id="rCoordinate">35.00</span>  |
+    Status: <span id="status">Robot is disabled (brake is not released)</span>
+  </div>
+
+    <script>
+        var dobot_postion = [0, 0, 0, 0]
+
+        // load a webpage into an iframe
+        window.show_web_page = function(webFrame, webSite) {
+            var iframe = document.getElementById(webFrame);
+            var webpageURL = "./" + webSite
+            iframe.src = webpageURL;
+
+        }
+
+        let ipAddress = '127.0.0.1';
+
+        async function fetch_api(path, method = 'GET', requestBody = {}) {
+            try {
+                const apiUrl = `http://${ipAddress}:${path}`;
+                const requestOptions = {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                };
+                if (method !== 'GET') {
+                    requestOptions.body = JSON.stringify(requestBody);
+                }
+
+                const response = await fetch(apiUrl, requestOptions);
+                const data = await response.json();
+
+                return data;
+            } catch (error) {
+                console.error('Error:', error);
+                throw error;
+            }
+        }
+
+        async function update_dobot_status() {
+            try {
+                const data = await fetch_api('5000/get_dobot_mode', 'GET');
+                const switchToggle = document.getElementById('switchToggle');
+                if(data.mode_value === 4) {
+                    $('#switchToggle').bootstrapToggle('off', true);
+                } else {
+                    $('#switchToggle').bootstrapToggle('on', true);
+                }
+                document.getElementById('status').textContent = data.mode_info.description;
+                //switchToggle.checked = data.mode_value !== 4;
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        async function toggle_dobot() {
+            try {
+                const apiUrl = switchToggle.checked ? '5000/enable' : '5000/disable';
+                await fetch_api(apiUrl, 'GET');
+                update_dobot_status()
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        async function get_dobot_position() {
+            try {
+                const data = await fetch_api('5000/get_dobot_position');
+                const dobotPosition = data.position;
+                const xCoordinate = parseFloat(dobotPosition[0]).toFixed(2);
+                const yCoordinate = parseFloat(dobotPosition[1]).toFixed(2);
+                const zCoordinate = parseFloat(dobotPosition[2]).toFixed(2);
+                const rCoordinate = parseFloat(dobotPosition[3]).toFixed(2);
+
+                // Update DOM elements with the calculated coordinates
+                document.getElementById('xCoordinate').textContent = xCoordinate;
+                document.getElementById('yCoordinate').textContent = yCoordinate;
+                document.getElementById('zCoordinate').textContent = zCoordinate;
+                document.getElementById('rCoordinate').textContent = rCoordinate;
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        // const intervalId = setInterval(getDobotPosition, 500);
+        async function clear_error() {
+            try {
+                await fetch_api('5000/clear_error');
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        async function reset_dobot() {
+            try {
+                await fetch_api('5000/reset_dobot');
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        async function get_error_message() {
+            try {
+                const data = await fetch_api('5000/get_error_message', 'GET');
+                const errorModalBody = document.getElementById('errorModalBody');
+                const errorModalLabel = document.getElementById('errorModalLabel');
+
+                errorModalBody.innerText = data.errorMessage;
+
+                /*
+                if (data.errorIds !== null) {
+                    let i = 1;
+                    if (data.errorIds.length === 0) {
+                        errorModalBody.innerText = 'No errors' + '\n';
+                    } else {
+                        data.errorIds.forEach(async(errorId) => {
+                            const errorText = await get_error_text(errorId);
+                            errorModalLabel.innerText = errorText.title;
+                            errorModalBody.innerText += i + ') ' + errorText.message + ' Error-ID: ' + errorId + '\n';
+                            i++;
+                        });
+                    }
+                } else {
+                    errorModalBody.innerText = 'No errors' + '\n';
+                }
+                */
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        /*
+        let errorMessages = {};
+
+        async function load_error_messages() {
+            try {
+                const response = await fetch('error_messages.json');
+                const data = await response.json();
+                Object.assign(errorMessages, data);
+            } catch (error) {
+                console.error('Fehler beim Laden der Fehlermeldungen:', error);
+            }
+        }
+
+        load_error_messages();
+
+        function get_error_text(errorId) {
+            return errorMessages[errorId] || {
+                title: 'Unknown Errorget_dobot_position() ',
+                message: 'An unknown error has occurred.'
+            };
+        }
+        */
+
+        async function coord_on_hover() {
+            await get_dobot_position();
+            await update_dobot_status();
+        }
+
+        const coordBoxDiv = document.getElementById("coordBox");
+        coordBoxDiv.addEventListener("mouseenter", coord_on_hover);
+        
+        window.onload = function(){
+            get_dobot_position();
+            update_dobot_status();
+        }
+    </script>
+
+</body>
+
+</html>

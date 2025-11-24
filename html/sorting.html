@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Webinterface</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <script src="/js/jquery.min.js"></script>
+  <script src="/js/popper.min.js"></script>
+  <script src="/js/bootstrap.min.js"></script>
+  <link rel="stylesheet" href="/fontawesome-free-7.1.0-web/css/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+  <div class="container mt-5">
+    <div class="col-lg-12">
+      <div class="row">
+        <div class="col-lg-12">
+          <h2 id="referencePoints">Move the robotic arm to the drop positions</h2>
+        </div>
+      </div>
+      <div id="dropPositionsContainer" class="mt-5"></div>
+    </div>
+  </div>
+
+  <script>
+    const ipAddress = '127.0.0.1';
+
+    async function fetch_api(path, method = 'GET', requestBody = {}) {
+      try {
+        const apiUrl = `http://${ipAddress}:5000${path}`;
+        const requestOptions = {
+          method,
+          headers: { 'Content-Type': 'application/json' }
+        };
+        if (method !== 'GET') {
+          requestOptions.body = JSON.stringify(requestBody);
+        }
+        const response = await fetch(apiUrl, requestOptions);
+        return await response.json();
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    }
+
+    async function load_drop_positions() {
+      const container = document.getElementById('dropPositionsContainer');
+      container.innerHTML = '';
+
+      const data = await fetch_api('/get_drop_positions');
+      if (!data || !data.classes) return;
+
+      data.classes.forEach((item, index) => {
+        const row = document.createElement('div');
+        row.classList.add('row', 'mt-4');
+        const displayName = item.name.replace(/_/g, ' ');
+
+        row.innerHTML = `
+          <div class="col-lg-3">
+            <label>${displayName}</label>
+          </div>
+          <div class="col-lg-4">
+            <p class="dobotrefPointsBox">
+              X: <span id="xCoordinate_${index}">${item.drop_position[0].toFixed(2)}</span> |
+              Y: <span id="yCoordinate_${index}">${item.drop_position[1].toFixed(2)}</span> |
+              Z: <span id="yCoordinate_${index}">${item.drop_position[2].toFixed(2)}</span>
+            </p>
+          </div>
+          <div class="col-lg-1"></div>
+          <div class="col-lg-3">
+            <button type="button" class="btn btn-primary custom-width custom-margin-left"
+                    onclick="save_drop_position(${index})">Save</button>
+          </div>
+        `;
+
+        container.appendChild(row);
+        container.appendChild(document.createElement('hr'));
+      });
+    }
+
+    async function save_drop_position(index) {
+      const dropData = await fetch_api('/get_drop_positions');
+      if (!dropData || !dropData.classes) return;
+
+      const dobotPos = await fetch_api('/get_dobot_position');
+      if (!dobotPos || !dobotPos.position) return;
+
+      const x = dobotPos.position[0];
+      const y = dobotPos.position[1];
+      const z = dobotPos.position[2];
+
+      dropData.classes[index].drop_position = [x, y, z];
+
+      await fetch_api('/set_drop_positions', 'POST', dropData);
+      load_drop_positions();
+    }
+
+    document.addEventListener('DOMContentLoaded', load_drop_positions);
+  </script>
+</body>
+
+</html>

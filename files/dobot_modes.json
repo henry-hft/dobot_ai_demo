@@ -1,0 +1,57 @@
+[
+  {
+    "mode": 1,
+    "constant": "ROBOT_MODE_INIT",
+    "description": "Initialization"
+  },
+  {
+    "mode": 2,
+    "constant": "ROBOT_MODE_BRAKE_OPEN",
+    "description": "Brake is released"
+  },
+  {
+    "mode": 3,
+    "constant": null,
+    "description": "Reserved"
+  },
+  {
+    "mode": 4,
+    "constant": "ROBOT_MODE_DISABLED",
+    "description": "Robot is disabled (brake is not released)"
+  },
+  {
+    "mode": 5,
+    "constant": "ROBOT_MODE_ENABLE",
+    "description": "Robot is enabled (idle)"
+  },
+  {
+    "mode": 6,
+    "constant": "ROBOT_MODE_BACKDRIVE",
+    "description": "Robot is in backdriving state"
+  },
+  {
+    "mode": 7,
+    "constant": "ROBOT_MODE_RUNNING",
+    "description": "Robot is running"
+  },
+  {
+    "mode": 8,
+    "constant": "ROBOT_MODE_RECORDING",
+    "description": "Robot is in dragging recording mode"
+  },
+  {
+    "mode": 9,
+    "constant": "ROBOT_MODE_ERROR",
+    "description": "Robot is in alarm state"
+  },
+  {
+    "mode": 10,
+    "constant": "ROBOT_MODE_PAUSE",
+    "description": "Robot is paused"
+  },
+  {
+    "mode": 11,
+    "constant": "ROBOT_MODE_JOG",
+    "description": "Robot is in jogging state"
+  }
+]

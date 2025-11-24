@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calibration</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/popper.min.js"></script>
+    <script src="/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="/fontawesome-free-7.1.0-web/css/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+     <style>
+    .align-center {
+      display: flex;
+      align-items: center;
+    }
+
+    /* Buttons */
+    .custom-width {
+      min-width: 120px;
+    }
+
+    .custom-xlmt-button {
+      padding: 10px 20px;
+    }
+
+    .streaming-container {
+      width: 100%;
+      height: 400px;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .streaming-container iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    hr {
+      margin: 15px 0;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+
+<div class="container mt-3" id="mainContent">
+    <!--start postion-->
+    <form id="standCoorPos">
+        <h2>Photo Position</h2>
+        <hr>
+        <!-- Radio Buttons for Action Selection -->
+        <div class="row">
+            <div class="col-lg-12 mt-3">
+                <!-- Radio Button: Move to Default Position -->
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="action" id="moveToDefault" value="moveToDefault" checked>
+                    <label class="form-check-label" for="moveToDefault">
+                        Move Dobot to Standard Position <span class="form-label coordiantes-text" id="standCoorText"></span>
+                    </label>
+                </div>
+
+                <!-- Manual Coordinates Input -->
+                <div class="mt-2" id="inputCoorValue">
+                    <div class="row custom-ml">
+                        <!-- X Coordinate Input -->
+                        <div class="col-auto">
+                            <label for="inputCoorX" class="form-label">X:</label>
+                        </div>
+                        <div class="col-auto">
+                            <input type="number" class="form-control form-control-sm" id="inputCoorX" placeholder="X" value="327.64">
+                        </div>
+
+                        <!-- Y Coordinate Input -->
+                        <div class="col-auto">
+                            <label for="inputCoorY" class="form-label">Y:</label>
+                        </div>
+                        <div class="col-auto">
+                            <input type="number" class="form-control form-control-sm" id="inputCoorY" placeholder="Y" value="-7.62">
+                        </div>
+                    </div>
+
+                    <div class="row mt-3 custom-ml">
+                        <!-- Z Coordinate Input -->
+                        <div class="col-auto">
+                            <label for="inputCoorZ" class="form-label">Z:</label>
+                        </div>
+                        <div class="col-auto">
+                            <input type="number" class="form-control form-control-sm" id="inputCoorZ" placeholder="Z" value="180.60">
+                        </div>
+
+                        <!-- R Coordinate Input -->
+                        <div class="col-auto">
+                            <label for="inputCoorR" class="form-label">R:</label>
+                        </div>
+                        <div class="col-auto">
+                            <input type="number" class="form-control form-control-sm" id="inputCoorR" placeholder="R" value="35">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Radio Button: Move Dobot Manually -->
+                <div class="form-check mt-3">
+                    <input class="form-check-input" type="radio" name="action" id="moveDobot" value="moveDobot">
+                    <label class="form-check-label" for="moveDobot">
+                        Move Dobot Manually
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Button to Execute Action -->
+        <div class="row mt-5">
+            <div class="col-lg-7"></div>
+            <div class="col-lg-5">
+                <button type="button" id="dobotNextButton" class="btn btn-primary custom-ml-button custom-width" onclick="start_pos_next_action()">Execute</button>
+            </div>
+        </div>
+    </form>
+
+
+    <!-- Live Streaming Section -->
+    <div class="col-lg-12" id="liveStreaming">
+            <div class="mb-5">
+      <h2>Live Streaming</h2>
+      <div class="row g-3">
+        <div class="col-lg-10">
+          <div class="streaming-container">
+            <iframe id="stream-iframe" src="http://127.0.0.1:8000/viewer"></iframe>
+          </div>
+        </div>
+        <div class="col-lg-2" id="markerList">
+          <!-- Marker list -->
+        </div>
+      </div>
+    </div>
+
+
+        <!-- Buttons for Navigation -->
+        <div class="row">
+            <!-- Back Button -->
+            <div class="col-lg-5 mt-5">
+                <button type="button" id="liveBackButton" class="btn btn-primary custom-width" onclick="live_back_action()">Back</button>
+            </div>
+
+            <!-- Empty Column (Spacing) -->
+            <div class="col-lg-2"></div>
+
+            <!-- Next Button with Associated JavaScript Function -->
+            <div class="col-lg-5 mt-5">
+                <button type="button" id="liveNextButton" class="btn btn-primary custom-ml-button custom-width" onclick="liveNextAction()">Next</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-12" id="refPointsDiv">
+        <div class="row">
+            <div class="col-lg-12">
+                <h2 id="referencePoints">Move the robot arm Dobot to the three reference points</h2>
+            </div>
+        </div>
+        <div class="row mt-5">
+            <div class="col-lg-3">
+                <label for="firstReferencePoint">First reference point</label>
+            </div>
+            <div class="col-lg-3">
+                <p class="dobotrefPointsBox">
+                    X: <span id="xCoordinateRefPoints1">0.00</span> | Y: <span id="yCoordinateRefPoints1">0.00</span>
+                </p>
+            </div>
+            <div class="col-lg-1"></div>
+            <div class="col-lg-3">
+                <button type="button" id="firstRefPointsButton" class="btn btn-primary custom-width custom-margin-left" onclick="save_ref_pt_1()">Save</button>
+            </div>
+        </div>
+        <hr>
+
+        <div class="row mt-5">
+            <div class="col-lg-3">
+                <label for="secondReferencePoint">Second reference point</label>
+            </div>
+            <div class="col-lg-3">
+                <p class="dobotrefPointsBox">
+                    X: <span id="xCoordinateRefPoints2">0.00</span> | Y: <span id="yCoordinateRefPoints2">0.00</span>
+                </p>
+            </div>
+            <div class="col-lg-1"></div>
+            <div class="col-lg-3">
+                <button type="button" id="secondReferencePointButton" class="btn btn-primary custom-width custom-margin-left" onclick="save_ref_pt_2()">Save</button>
+            </div>
+        </div>
+        <hr>
+
+        <div class="row mt-5">
+            <div class="col-lg-3">
+                <label for="thirdReferencePoint">Third reference point</label>
+            </div>
+            <div class="col-lg-3">
+                <p class="dobotrefPointsBox">
+                    X: <span id="xCoordinateRefPoints3">0.00</span> | Y: <span id="yCoordinateRefPoints3">0.00</span>
+                </p>
+            </div>
+            <div class="col-lg-1"></div>
+            <div class="col-lg-3">
+                <button type="button" id="thirdReferencePointButton" class="btn btn-primary custom-width custom-margin-left" onclick="save_ref_pt_3()">Save</button>
+            </div>
+        </div>
+        <hr>
+
+        <div class="row">
+            <div class="col-lg-5">
+                <button type="button" id="refBackButton" class="btn btn-primary custom-width custom-mt-button" onclick="ref_back_action()">Back</button>
+            </div>
+            <div class="col-lg-2"></div>
+            <div class="col-lg-5">
+                <button type="button" id="refNextButton" class="btn btn-primary custom-width custom-mt-button" onclick="send_calib_file()">Save & send Calib File</button>
+            </div>
+        </div>
+    </div>
+
+
+</div>
+
+<script>
+    // Global variable
+    let dobot_foto_pos = {}
+    let ref_points = {
+        "x1": 0,
+        "x2": 0,
+        "x3": 0,
+        "y1": 0,
+        "y1": 0,
+        "y1": 0
+    }
+    let marker_coord = {}
+
+    const standCoorTextSpan = document.getElementById("standCoorText");
+    const inputCoorXField = document.getElementById("inputCoorX");
+    const inputCoorYField = document.getElementById("inputCoorY");
+    const inputCoorZField = document.getElementById("inputCoorZ");
+    const inputCoorRField = document.getElementById("inputCoorR");
+
+    var moveDobotElement = document.getElementById("moveDobot");
+    var capturePhotoRadio = document.getElementById("capturePhoto");
+    var tippMarkerRadio = document.getElementById("tippMarker");
+    var inputCoorValueDiv = document.getElementById("inputCoorValue");
+
+    var standCoorPosDiv = document.getElementById("standCoorPos");
+    var liveStreamingDiv = document.getElementById("liveStreaming");
+
+    var marker1 = document.getElementById("marker1");
+    var marker2 = document.getElementById("marker2");
+    var marker3 = document.getElementById("marker3");
+    var marker4 = document.getElementById("marker4");
+
+
+    // Function to update coordinate values
+    function update_voord_values() {
+        const x = parseFloat(inputCoorXField.value);
+        const y = parseFloat(inputCoorYField.value);
+        const z = parseFloat(inputCoorZField.value);
+        const r = parseFloat(inputCoorRField.value);
+        standCoorTextSpan.textContent = `X: ${x} | Y: ${y} | Z: ${z} | R: ${r}`;
+    }
+
+    // Update values initially and when inputs change
+    update_voord_values();
+    inputCoorXField.addEventListener("input", update_voord_values);
+    inputCoorYField.addEventListener("input", update_voord_values);
+    inputCoorZField.addEventListener("input", update_voord_values);
+    inputCoorRField.addEventListener("input", update_voord_values);
+
+    // start Position 
+    moveToDefault.addEventListener("change", function() {
+        if (moveToDefault.checked) {
+            inputCoorValueDiv.style.display = "block";
+        }
+        $('#dobotNextButton').removeClass('custom-xxl-mt-button');
+    });
+
+    moveDobotElement.addEventListener("change", function() {
+        if (moveDobotElement.checked) {
+            inputCoorValueDiv.style.display = "none";
+        }
+        $('#dobotNextButton').addClass('custom-xxl-mt-button');
+    });
+
+    let ipAddress = '127.0.0.1';
+
+    async function fetch_api(path, method = 'GET', requestBody = {}) {
+        try {
+            const apiUrl = `http://${ipAddress}:${path}`;
+            const requestOptions = {
+                method,
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            };
+            if (method !== 'GET') {
+                requestOptions.body = JSON.stringify(requestBody);
+            }
+
+            const response = await fetch(apiUrl, requestOptions);
+            const data = await response.json();
+
+            return data;
+        } catch (error) {
+            console.error('Error:', error);
+            throw error;
+        }
+    }
+
+    async function move_to_start_foto_pos() {
+        await set_dobot_foto_pos();
+
+        if (moveToDefault.checked) {
+            try {
+                await fetch_api('5000/move_to_start_foto_pos', 'POST', dobot_foto_pos);
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+    }
+
+
+    async function get_dobot_pos() {
+        try {
+            const responseData = await fetch_api('5000/get_dobot_position', 'GET');
+            return responseData.position;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+
+    async function set_dobot_foto_pos() {
+        let targetPosition = {};
+
+        if (moveToDefault.checked) {
+            targetPosition = {
+                x: parseFloat(inputCoorXField.value),
+                y: parseFloat(inputCoorYField.value),
+                z: parseFloat(inputCoorZField.value),
+                r: parseFloat(inputCoorRField.value),
+            };
+        } else if (moveDobot.checked) {
+            const dobot_position = await get_dobot_pos();
+            targetPosition = {
+                x: dobot_position[0],
+                y: dobot_position[1],
+                z: dobot_position[2],
+                r: dobot_position[3],
+            };
+        }
+
+        dobot_foto_pos = targetPosition;
+    }
+
+    // Aruco  Marker list 
+    document.addEventListener("DOMContentLoaded", function() {
+        const markerList = document.getElementById("markerList");
+
+        async function update_marker() {
+            try {
+                const marker_data = await fetch_api('8000/get_aruco_marker', 'GET');
+
+                markerList.textContent = '';
+
+                if (marker_data.length > 0) {
+                    marker_data.forEach((marker, index) => {
+                        const listItem = document.createElement("li");
+                        listItem.classList.add("list-group-item", index === 0 ? 'mt-1' : 'mt-5');
+                        listItem.innerHTML = `${index + 1}) Marker <br> &nbsp; &nbsp;(${marker.x}, ${marker.y})`;
+                        markerList.appendChild(listItem);
+                    });
+                }
+            } catch (error) {
+                markerList.style.display = "none";
+                console.error("Der Live-Streaming-Server ist nicht erreichbar:", error);
+            }
+        }
+
+        const intervalId = setInterval(update_marker, 500);
+    });
+
+
+    async function set_aruco_marker() {
+        try {
+            const marker_data = await fetch_api('8000/get_aruco_marker', 'GET');
+            marker_coord = marker_data;
+        } catch (error) {
+            console.error("The Live Streaming server is unreachable:", error);
+        }
+    }
+
+    async function start_pos_next_action() {
+        standCoorPosDiv.style.display = "none";
+        liveStreamingDiv.style.display = "block";
+        await move_to_start_foto_pos()
+    }
+
+    function live_back_action() {
+        standCoorPosDiv.style.display = "block";
+        liveStreamingDiv.style.display = "none";
+
+    }
+
+    async function liveNextAction() {
+        await set_dobot_foto_pos()
+        await set_aruco_marker()
+        liveStreamingDiv.style.display = "none";
+        refPointsDiv.style.display = "block";
+
+    }
+    //  update reference points
+    function update_reference_points(xIndex, yIndex, xElementId, yElementId, dobot_position) {
+        ref_points['x' + xIndex] = dobot_position[0];
+        ref_points['y' + yIndex] = dobot_position[1];
+
+        const xElement = document.getElementById(xElementId);
+        const yElement = document.getElementById(yElementId);
+
+        if (xElement && yElement) {
+            xElement.textContent = parseFloat(ref_points['x' + xIndex]).toFixed(2);
+            yElement.textContent = parseFloat(ref_points['y' + yIndex]).toFixed(2);
+        } else {
+            console.error('Ein oder mehrere DOM-Elemente wurden nicht gefunden.');
+        }
+    }
+
+    async function save_ref_pt_1() {
+        try {
+            let dobot_position = await get_dobot_pos();
+            update_reference_points(1, 1, 'xCoordinateRefPoints1', 'yCoordinateRefPoints1', dobot_position);
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    async function save_ref_pt_2() {
+        try {
+            let dobot_position = await get_dobot_pos();
+            update_reference_points(2, 2, 'xCoordinateRefPoints2', 'yCoordinateRefPoints2', dobot_position);
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    async function save_ref_pt_3() {
+        try {
+            let dobot_position = await get_dobot_pos();
+            update_reference_points(3, 3, 'xCoordinateRefPoints3', 'yCoordinateRefPoints3', dobot_position);
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    function ref_back_action() {
+        refPointsDiv.style.display = "none";
+        liveStreamingDiv.style.display = "block";
+
+    }
+
+    function download_JSON_data(data, filename) {
+        const jsonDataString = JSON.stringify(data, null, 2);
+        const blob = new Blob([jsonDataString], {
+            type: 'application/json'
+        });
+
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename || 'data.json';
+        link.click();
+        URL.revokeObjectURL(link.href);
+    }
+
+    async function send_calib_file() {
+        const calib_para = {
+            dobot_foto_pos,
+            ref_points,
+            marker_coord
+        };
+
+        try {
+            const response = await fetch_api('5000/save_calibration_file', 'POST', calib_para);
+            console.log('Response from the server:', response);
+            download_JSON_data(calib_para, 'downloaded_data.json');
+        } catch (error) {
+            console.error('An error occurred:', error);
+        }
+    }
+
+    async function save_current_frame() {
+        try {
+            const response = await fetch_api('8000/save_current_frame', 'GET');
+
+            const data = await response.json();
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    function updat_iframe() {
+        const iframe = document.getElementById('stream-iframe');
+
+        iframe.addEventListener('load', function() {
+            if (!iframe.contentWindow.document.body.innerHTML.trim()) {
+                iframe.contentWindow.location.reload();
+            }
+        });
+    }
+</script>

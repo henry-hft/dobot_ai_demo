@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <script src="/js/jquery.min.js"></script>
+  <script src="/js/popper.min.js"></script>
+  <script src="/js/bootstrap.min.js"></script>
+  <link rel="stylesheet" href="/fontawesome-free-7.1.0-web/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body class="text-center">
+  <div class="container py-4">
+
+    <!-- Viewer -->
+    <div class="row justify-content-center mb-4">
+      <div class="col-lg-10">
+        <div class="ratio ratio-16x9 shadow rounded overflow-hidden">
+          <iframe src="http://127.0.0.1:8000/viewer" width="832" height="624" style="border: none;"
+            allowfullscreen></iframe>
+        </div>
+      </div>
+    </div>
+
+    <!-- Control Buttons Row 1 -->
+    <div class="row g-3 justify-content-center">
+      <div class="col-md-3">
+        <button class="btn btn-outline-primary w-100" onclick="move_to_start_foto_pos()">
+          <i class="fas fa-arrow-up me-2"></i> Photo Position
+        </button>
+      </div>
+      <div class="col-md-3">
+        <button class="btn btn-outline-success w-100" onclick="save_current_frame()">
+          <i class="fas fa-camera me-2"></i> Capture
+        </button>
+      </div>
+      <div class="col-md-3">
+        <button class="btn btn-outline-danger w-100" onclick="start_process()">
+          <i class="fas fa-play me-2"></i> Start Process
+        </button>
+      </div>
+    </div>
+
+    <!-- AI Detection Checkbox -->
+    <div class="row justify-content-center mt-3">
+      <div class="col-md-4 d-flex align-items-center justify-content-center">
+        <div class="form-check form-check-inline mb-0">
+          <input class="form-check-input" type="checkbox" id="ai_detection_checkbox" checked>
+          <label class="form-check-label ms-2" for="ai_detection_checkbox">
+            AI Detection
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Control Buttons Row 2 -->
+    <div class="row g-3 justify-content-center mt-3">
+      <div class="col-md-3">
+        <button class="btn btn-outline-warning w-100" onclick="clear_error()">
+          <i class="fas fa-triangle-exclamation me-2"></i> Clear Error(s)
+        </button>
+      </div>
+      <div class="col-md-3">
+        <button class="btn btn-outline-info w-100" onclick="open_gripper()">
+          <i class="fas fa-up-right-and-down-left-from-center me-2"></i> Open Gripper
+        </button>
+      </div>
+      <div class="col-md-3">
+        <button class="btn btn-outline-secondary w-100" onclick="close_gripper()">
+          <i class="fas fa-down-left-and-up-right-to-center me-2"></i> Close Gripper
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MODAL for Object Selection -->
+  <div class="modal fade" id="objectSelectModal" tabindex="-1" aria-labelledby="objectSelectModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="objectSelectModalLabel">Which object types should be sorted?</h5>
+        </div>
+        <div class="modal-body" id="objectCheckboxContainer">
+          <!-- Checkboxes will be injected here -->
+        </div>
+        <div class="modal-footer">
+            <button type="button" id="cancelObjectSelection" class="btn btn-danger">Cancel</button>
+
+          <button type="button" class="btn btn-success" id="confirmObjectSelection">Start</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+
+<script>
+  let ip_address = '127.0.0.1';
+
+  async function fetch_api(path, method = 'GET', requestBody = {}) {
+    const url = `http://${ip_address}:${path}`;
+    try {
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: method === 'GET' ? undefined : JSON.stringify(requestBody)
+      });
+      if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  }
+
+  async function save_current_frame() {
+    await fetch_api('8000/save_current_frame');
+  }
+
+  async function find_contours() {
+    await fetch_api('5000/find_contours');
+  }
+
+  async function move_to_start_foto_pos() {
+    await fetch_api('5000/move_to_start_foto_pos', 'POST', {});
+  }
+
+  async function clear_error() {
+    await fetch_api('5000/clear_error');
+  }
+
+  async function open_gripper() {
+    await fetch_api('5000/open_gripper');
+  }
+
+  async function close_gripper() {
+    await fetch_api('5000/close_gripper');
+  }
+  
+    // MAIN START PROCESS FUNCTION
+  async function start_process() {
+    await find_contours();
+  const aiDetectionEnabled = document.getElementById('ai_detection_checkbox').checked;
+
+  // === AI Detection DISABLED ===
+  if (!aiDetectionEnabled) {
+    const data = await fetch_api('5000/get_drop_positions');
+    if (!data || !data.classes) {
+      alert('Error fetching drop positions.');
+      return;
+    }
+
+    const defaultClass = data.classes.find(c => c.name.toLowerCase() === 'default');
+    if (!defaultClass) {
+      alert('Default drop position not found.');
+      return;
+    }
+
+    // Default-Objekt erstellen
+    const objects = [{
+      name: defaultClass.name,
+      drop_position: defaultClass.drop_position
+    }];
+
+    const response = await fetch_api('5000/start_process', 'POST', {
+      ai_detection: false,
+      objects: objects
+    });
+
+    if (response && response.error) alert(response.error);
+    return;
+  }
+
+  // === AI Detection ENABLED ===
+  const data = await fetch_api('5000/get_drop_positions');
+  if (!data || !data.classes) {
+    alert('Error fetching drop positions.');
+    return;
+  }
+
+  const container = document.getElementById('objectCheckboxContainer');
+  container.innerHTML = '';
+
+  const dropPositions = {};
+  data.classes.forEach(cls => {
+    dropPositions[cls.name] = cls.drop_position;
+  });
+
+  // Checkboxen außer "Default" anzeigen
+  data.classes.forEach(cls => {
+    if (cls.name.toLowerCase() !== 'default') {
+      const checkbox = document.createElement('div');
+      checkbox.classList.add('form-check', 'text-start');
+      checkbox.innerHTML = `
+        <input class="form-check-input" type="checkbox" id="chk_${cls.name}" value="${cls.name}" checked>
+        <label class="form-check-label" for="chk_${cls.name}">${cls.name.replace(/_/g, ' ')}</label>
+      `;
+      container.appendChild(checkbox);
+    }
+  });
+
+  // Modal öffnen
+  const modalEl = document.getElementById('objectSelectModal');
+  const modal = new bootstrap.Modal(modalEl);
+  modal.show();
+
+  // Cancel fix (iframe-sicher)
+  document.getElementById('cancelObjectSelection').addEventListener('click', () => {
+    modalEl.classList.remove('show');
+    modalEl.style.display = 'none';
+    const backdrop = document.querySelector('.modal-backdrop');
+    if (backdrop) backdrop.remove();
+    document.body.classList.remove('modal-open');
+  });
+
+  // START-Button
+  document.getElementById('confirmObjectSelection').onclick = async () => {
+    const selected = [...container.querySelectorAll('input:checked')].map(i => i.value);
+    if (selected.length === 0) {
+      alert("Please select at least one object to sort.");
+      return;
+    }
+
+    // Modal schließen
+    modalEl.classList.remove('show');
+    modalEl.style.display = 'none';
+    const backdrop = document.querySelector('.modal-backdrop');
+    if (backdrop) backdrop.remove();
+    document.body.classList.remove('modal-open');
+
+    await find_contours();
+
+    // Kombinierte Objektliste erstellen
+    const objects = selected.map(name => ({
+      name: name,
+      drop_position: dropPositions[name]
+    }));
+
+    const response = await fetch_api('5000/start_process', 'POST', {
+      ai_detection: true,
+      objects: objects
+    });
+
+    if (response && response.error) alert(response.error);
+  };
+}
+  
+document.getElementById('cancelObjectSelection').addEventListener('click', () => {
+  const modalEl = document.getElementById('objectSelectModal');
+  modalEl.classList.remove('show');
+  modalEl.style.display = 'none';
+  const modalBackdrop = document.querySelector('.modal-backdrop');
+  if (modalBackdrop) modalBackdrop.remove();
+  document.body.classList.remove('modal-open');
+  document.body.style.overflow = '';
+});
+
+
+</script>
+
+</html>

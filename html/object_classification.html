@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Viewer</title>
+
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/bootstrap.min.js"></script>
+
+    <style>
+        .img-card {
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 6px;
+        }
+        .status-text {
+            text-align:center;
+            margin-top:5px;
+            font-weight:bold;
+        }
+        .status-red {
+            color: red;
+        }
+        .status-green {
+            color: green;
+        }
+        .loading-img {
+            width:80px;
+            display:block;
+            margin:auto;
+        }
+        .tab-content img {
+            display:block;
+            margin-left:auto;
+            margin-right:auto;
+        }
+        .details-toggle {
+            cursor:pointer;
+            font-size:0.9rem;
+            margin-left: 5px;
+        }
+        .details-table {
+            margin-top:10px;
+            display:none;
+        }
+    </style>
+</head>
+<body>
+
+
+<div class="container mt-3">
+    <h2>AI Object Classification</h2>
+    <hr>
+    <div id="imageContainer">
+    </div>
+</div>
+
+<script>
+    const API_BASE = "http://127.0.0.1:5000";
+    let lastImageList = [];
+    let lastInference = [];
+    const userTabChoice = {};
+
+    setInterval(loadImages, 2000);
+    setInterval(loadInference, 2000);
+
+    document.addEventListener("DOMContentLoaded", () => {
+        loadImages();
+        loadInference();
+    });
+
+    async function loadInference() {
+        let r;
+        try { r = await fetch(API_BASE + "/get_inference_results"); }
+        catch(e){ return; }
+
+        const data = await r.json();
+        lastInference = data;
+        updateClassificationStatus();
+    }
+
+    async function loadImages() {
+        let response;
+        try {
+            response = await fetch(`${API_BASE}/list_detail_images`);
+        } catch (e) {
+            return;
+        }
+
+        const images = await response.json();
+
+        if (JSON.stringify(images) !== JSON.stringify(lastImageList)) {
+            lastImageList = images;
+            render(images);
+            updateClassificationStatus();
+        }
+
+        updateProcessedTabs(images);
+    }
+
+    function render(images) {
+        const container = document.getElementById("imageContainer");
+        container.innerHTML = "";
+        const groups = groupImages(images);
+
+        let row;
+        let count = 0;
+
+        for (const id in groups) {
+            if (count % 3 === 0) {
+                row = document.createElement("div");
+                row.className = "row mb-3";
+                container.appendChild(row);
+            }
+
+            row.appendChild(createCard(id, groups[id]));
+            count++;
+        }
+    }
+
+    function groupImages(list) {
+        const groups = {};
+
+        list.forEach(img => {
+            const id = img.split("_")[0];
+            if (!groups[id]) groups[id] = { unclassified: null, preprocessed: null };
+
+            if (img.includes("unclassified")) groups[id].unclassified = img;
+            if (img.includes("preprocessed")) groups[id].preprocessed = img;
+        });
+
+        Object.keys(groups).forEach(id => {
+            if (!groups[id].unclassified) delete groups[id];
+        });
+
+        return groups;
+    }
+
+    function createCard(id, imgs) {
+        const col = document.createElement("div");
+        col.className = "col-md-4";
+
+        const card = document.createElement("div");
+        card.className = "img-card";
+
+        const tabId = "tabs_" + id;
+
+        card.innerHTML = `
+            <ul class="nav nav-tabs" id="${tabId}">
+                <li class="nav-item">
+                    <a class="nav-link active" data-toggle="tab" data-imgid="${id}" href="#${tabId}_u">
+                        Original
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-toggle="tab" data-imgid="${id}" href="#${tabId}_p">
+                        Processed
+                    </a>
+                </li>
+            </ul>
+
+            <div class="tab-content p-2">
+                <div class="tab-pane fade show active" id="${tabId}_u">
+                    <img src="${API_BASE}/get_image/detail/${imgs.unclassified}" class="img-fluid">
+                </div>
+
+                <div class="tab-pane fade" id="${tabId}_p">
+                    ${imgs.preprocessed ?
+                        `<img id="proc_${id}" src="${API_BASE}/get_image/detail/${imgs.preprocessed}" class="img-fluid">`
+                        :
+                        `<img id="proc_${id}" src="loading.gif" class="loading-img">`
+                    }
+                </div>
+            </div>
+
+            <div id="status_${id}" class="status-text status-red">Unclassified</div>
+
+            <div id="details_${id}" class="details-table"></div>
+        `;
+
+        col.appendChild(card);
+
+        card.querySelectorAll("[data-toggle='tab']").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const target = btn.getAttribute("href");
+                userTabChoice[id] = target.endsWith("_p") ? "processed" : "unclassified";
+            });
+        });
+
+        return col;
+    }
+
+    function updateClassificationStatus() {
+        if (!lastInference.length) return;
+
+        lastInference.forEach(item => {
+            const img = item.image_name;
+            const id = img.split("_")[0];
+            const status = document.getElementById("status_" + id);
+            if (!status) return;
+
+            status.classList.remove("status-red");
+            status.classList.add("status-green");
+
+            // Find the class with the highest probability
+            let topClass = '';
+            let topProb = 0;
+
+            item.results.forEach(r => {
+                if (r.probability > topProb) {
+                    topClass = r.class.replace(/_/g, ' ');
+                    topProb = r.probability;
+                }
+            });
+            topProb = (topProb * 100).toFixed(2);  // Convert to percentage
+
+            status.innerHTML = 
+                `Classified: ${topClass} (${topProb}%) <span class="details-toggle" data-id="${id}">▼</span>`;
+
+            const tableContainer = document.getElementById("details_" + id);
+            let html = `
+                <table class="table table-sm table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Class</th>
+                            <th>Probability</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            item.results.forEach(r => {
+                html += `
+                    <tr>
+                        <td>${r.class.replace(/_/g, ' ')}</td>
+                        <td>${(r.probability * 100).toFixed(2)}%</td>
+                    </tr>
+                `;
+            });
+
+            html += "</tbody></table>";
+
+            tableContainer.innerHTML = html;
+
+            status.querySelector(".details-toggle").addEventListener("click", () => {
+                tableContainer.style.display =
+                    tableContainer.style.display === "none" || tableContainer.style.display === "" 
+                    ? "block" 
+                    : "none";
+            });
+        });
+    }
+
+    function updateProcessedTabs(images) {
+        const groups = groupImages(images);
+
+        for (const id in groups) {
+            const hasPre = groups[id].preprocessed;
+            if (!hasPre) continue;
+
+            const imgElement = document.getElementById("proc_" + id);
+            if (!imgElement) continue;
+
+            if (imgElement.src.includes("loading.gif")) {
+                imgElement.src = `${API_BASE}/get_image/detail/${hasPre}`;
+            }
+
+            if (!userTabChoice[id] || userTabChoice[id] === "processed") {
+                const tab = document.querySelector(`[data-imgid="${id}"][href="#tabs_${id}_p"]`);
+                if (tab) tab.click();
+            }
+        }
+    }
+</script>
+
+</body>
+</html>

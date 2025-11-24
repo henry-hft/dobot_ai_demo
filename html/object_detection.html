@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Object Detection</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/popper.min.js"></script>
+    <script src="/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="/fontawesome-free-7.1.0-web/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body class="bg-light">
+  <div class="container py-4" id="content">
+    <div class="col-lg-12" id="photosDiv">
+
+      <!-- Navigation -->
+      <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm rounded mb-4">
+        <div class="container-fluid justify-content-center">
+          <ul class="nav nav-pills">
+            <li class="nav-item mx-1">
+              <a class="nav-link active" href="#" onclick="get_images('original_foto.jpg')">
+                Original
+              </a>
+            </li>
+            <li class="nav-item mx-1">
+              <a class="nav-link" href="#" onclick="get_images('gray_im.jpg')">Grayscale</a>
+            </li>
+            <li class="nav-item mx-1">
+              <a class="nav-link" href="#" onclick="get_images('gammaCorrection.jpg')">Gamma</a>
+            </li>
+            <li class="nav-item mx-1">
+              <a class="nav-link" href="#" onclick="get_images('thresh.jpg')">Threshold</a>
+            </li>
+            <li class="nav-item mx-1">
+              <a class="nav-link" href="#" onclick="get_images('morphOperation.jpg')">Morph Operation</a>
+            </li>
+            <li class="nav-item mx-1">
+              <a class="nav-link" href="#" onclick="get_images('autoCanny.jpg')">Canny Edge Detection</a>
+            </li>
+            <li class="nav-item mx-1">
+              <a class="nav-link" href="#" onclick="get_images('contours.jpg')">Contours</a>
+            </li>
+          </ul>
+        </div>
+      </nav>
+
+      <!-- Image Display -->
+      <div class="row justify-content-center">
+        <div class="col-lg-10 text-center">
+          <div class="card shadow-sm border-0">
+            <div class="card-body bg-white">
+              <img id="image" class="img-fluid rounded" src="default-image.png" alt="Processed Image"
+                style="max-height: 70vh; object-fit: contain;">
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Optional Styling -->
+  <style>
+    .nav-pills .nav-link {
+      color: #495057;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .nav-pills .nav-link:hover {
+      background-color: #e9ecef;
+      color: #007bff;
+    }
+
+    .nav-pills .nav-link.active {
+      background-color: #007bff;
+      color: #fff;
+      box-shadow: 0 0 6px rgba(0, 123, 255, 0.4);
+    }
+
+    #image {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    #image:hover {
+      transform: scale(1.02);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+  </style>
+</body>
+<script>
+    let ipAddress = '127.0.0.1';
+    const imageElement = document.getElementById('image');
+
+    async function fetch_api(path, method = 'GET', requestBody = {}) {
+        try {
+            const apiUrl = `http://${ipAddress}:${path}`;
+            const requestOptions = {
+                method,
+                headers: { 'Content-Type': 'application/json' }
+            };
+            if (method !== 'GET') {
+                requestOptions.body = JSON.stringify(requestBody);
+            }
+
+            const response = await fetch(apiUrl, requestOptions);
+            return await response.json();
+        } catch (error) {
+            console.error('Error:', error);
+            throw error;
+        }
+    }
+
+    async function get_images(imageUrl) {
+        // Bild vom Server laden
+        imageElement.src = `http://${ipAddress}:5000/get_image/${imageUrl}`;
+
+        // Active-Klasse umschalten
+        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+        // Das zuletzt geklickte Element aktivieren
+        event.currentTarget.classList.add('active');
+    }
+
+    document.addEventListener("DOMContentLoaded", async function() {
+        // Standardbild anzeigen
+        imageElement.src = `http://${ipAddress}:5000/get_image/original_foto.jpg`;
+
+        // Prozess starten
+        find_contours();
+    });
+
+    async function find_contours() {
+        try {
+            const data = await fetch_api('5000/find_contours', 'GET');
+            console.log(data);
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+</script>
+
+</html>

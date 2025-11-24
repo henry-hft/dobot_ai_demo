@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Setting</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/popper.min.js"></script>
+    <script src="/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="/fontawesome-free-7.1.0-web/css/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+     <style>
+        .info-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 12px 16px;
+            margin-top: 15px;
+            font-size: 0.95rem;
+            border-radius: 4px;
+        }
+        .info-box strong {
+            color: #007bff;
+        }
+    </style>
+</head>
+<div class="container mt-3" id="mainContent">
+    <h2>Camera Settings</h2>
+    <hr>
+
+    <form>
+        <div class="row mt-4">
+            <div class="col-lg-4">
+                <div class="form-group">
+                    <label for="lensPosition">Lens Position:</label>
+                    <input type="number" class="form-control" id="lensPosition" value="2.0">
+                </div>
+
+                <button type="submit" class="btn btn-primary" onclick="send_camera_para(event)">Save Settings</button>
+
+                <!-- Info-Box mit Standardwerten -->
+                <div class="info-box mt-3">
+                    <strong>Default values / Standardwerte:</strong><br>
+                    Overview shot (Übersichtsaufnahme): <strong>2.0</strong><br>
+                    Detail shot (Detailaufnahme): <strong>10.0</strong>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+function send_camera_para(event) {
+    event.preventDefault(); 
+    let lensPosition = document.getElementById("lensPosition").value.trim();
+
+    if (/^\d+$/.test(lensPosition)) {
+        lensPosition = lensPosition + ".0";
+    }
+
+    const url = 'http://127.0.0.1:8000/set_lens_position/' + lensPosition;
+
+    fetch(url, {
+        method: 'GET',
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message);
+    })
+    .catch(error => {
+        alert('Error: Could not set lens position');
+        console.error(error);
+    });
+}
+</script>
+
