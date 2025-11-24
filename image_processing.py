@@ -413,9 +413,11 @@ def obj_recognition(image_or_path):
     morph = MorphOperation(thresh)
     canny = AutoCanny(morph)
     contours, center_coordinates_map, line_midpoints_map = FindContours(canny, img)
+    contour_lines_mid = {k: v['contour_line_mid'] for k, v in line_midpoints_map.items()}
+    result = {k: (contour_lines_mid[k], center_coordinates_map[k][1], center_coordinates_map[k][2]) for k in contour_lines_mid}
     cv2.imwrite("./images/contours.jpg", contours)
-    return center_coordinates_map
-    
+    return result
+
 def resize_with_padding(img, target_size=(180,180), pad_value=0):
     h, w = img.shape[:2]
     if h > w:
