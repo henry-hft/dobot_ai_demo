@@ -6,14 +6,12 @@ import threading
 import os
 import image_processing
 import control
-import glob
 import re
 import requests
-from tensorflow import keras
 import numpy as np
-from PIL import Image
+from threading import Thread
 from config import MODEL_PATH, LABELS_PATH, DOBOT_MODES, IMAGE_DIR
-from inference_cnn import load_model_and_labels, inference_results, model, class_labels
+from inference_cnn import load_model_and_labels, inference_results
 
 file_write_lock = threading.Lock()
 app = Flask(__name__)
@@ -263,70 +261,53 @@ def find_contours():
 # Start the process
 @app.route("/start_process", methods=["POST"])
 def start_process():
-    # Alte Bilder löschen
-    delete_detail_images()
-
-    # Dobot aktivieren
-    dobot.dashboard.EnableRobot(0.500, 0.0, 0.0, 0.0)
-
     # Request-Daten
     data = request.get_json() or {}
     ai_detection = data.get("ai_detection", False)
     objects = data.get("objects", [])
 
-    # Dobot-Status prüfen
+    # Sofortige Eingabekontrolle & Validation
+    if not objects:
+        return jsonify({"error": "No objects provided."}), 400
+
+    # Dobot-Error prüfen
     dobot_mode = dobot.dashboard.RobotMode()
+    if dobot_mode == 9:
+        return jsonify({"error": "Robot is currently in error mode and cannot move."}), 400
 
-    # --- AI Detection DEAKTIVIERT ---
-    if not ai_detection:
-        if not objects or len(objects) == 0:
-            return jsonify({"error": "No drop position provided for default object."}), 400
+    # Sofort Response schicken
+    thread = Thread(target=background_worker, args=(ai_detection, objects))
+    thread.daemon = True
+    thread.start()
 
-        default_obj = objects[0]
-        name = default_obj.get("name", "Unknown")
-        drop_pos = default_obj.get("drop_position")
+    return jsonify({
+        "status": "ok",
+        "message": "Process started in background."
+    })
 
-        if not drop_pos or len(drop_pos) != 3:
-            return jsonify({"error": f"Invalid drop position for {name}."}), 400
+def background_worker(ai_detection, objects):
+    try:
+        delete_detail_images()
+        dobot.dashboard.EnableRobot(0.500, 0.0, 0.0, 0.0)
 
-        if dobot_mode == 9:
-            return jsonify({"error": "Robot is currently in error mode and cannot move."}), 400
-
-        # --- Bewegung starten ---
         world_coord = control.prep_coords(list(obj_pixel_coord.values()), calib_values)
         foto_pos = calib_values["dobot_foto_pos"]
 
-        # Übergibt jetzt auch objects
-        control.move_to_object(world_coord, -138, -90.50, dobot, foto_pos, objects)
+        if not ai_detection:
+            # AI Detection AUS
+            default_obj = objects[0]
+            name = default_obj.get("name", "Unknown")
+            control.move_to_object(world_coord, -138, -90.50, dobot, foto_pos, objects)
+            print(f"[THREAD] Move to {name} finished.")
 
-        return jsonify({
-            "status": "ok",
-            "message": f"Moved to {name} (AI disabled)."
-        })
+        else:
+            # AI Detection EIN
+            control.capture_detail_picture(world_coord, -138, -90.50, dobot, foto_pos, objects)
+            print("[THREAD] AI detection process finished.")
 
-    # --- AI Detection AKTIVIERT ---
-    else:
-        if not objects or len(objects) == 0:
-            return jsonify({"error": "No objects selected for sorting."}), 400
+    except Exception as e:
+        print("[THREAD] ERROR:", e)
 
-        if dobot_mode == 9:
-            return jsonify({"error": "Robot is currently in error mode and cannot move."}), 400
-
-        invalids = [obj for obj in objects if "drop_position" not in obj or len(obj["drop_position"]) != 3]
-        if invalids:
-            names = ", ".join(o.get("name", "?") for o in invalids)
-            return jsonify({"error": f"Invalid drop position(s) for: {names}"}), 400
-
-        # --- AI-gestützten Prozess starten ---
-        world_coord = control.prep_coords(list(obj_pixel_coord.values()), calib_values)
-        foto_pos = calib_values["dobot_foto_pos"]
-
-        # Übergibt ebenfalls die Objekte an capture_detail_picture
-        control.capture_detail_picture(world_coord, -138, -90.50, dobot, foto_pos, objects)
-        return jsonify({
-            "status": "ok",
-            "message": "AI detection process started."
-        })
 
 @app.route("/get_inference_results", methods=["GET"])
 def get_inference_results():
