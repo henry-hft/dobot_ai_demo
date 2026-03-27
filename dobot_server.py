@@ -6,12 +6,14 @@ import threading
 import os
 import image_processing
 import control
+import glob
 import re
 import requests
+from tensorflow import keras
 import numpy as np
-from threading import Thread
-from config import MODEL_PATH, LABELS_PATH, DOBOT_MODES, IMAGE_DIR
-from inference_cnn import load_model_and_labels, inference_results
+from PIL import Image
+from config import MODEL_PATH, LABELS_PATH, DOBOT_MODES, IMAGE_DIR, GRIP_Z_POSITION, DETAIL_IMAGE_Z_POSITION, OVERVIEW_IMAGE_LENS_POSITION, DETAIL_IMAGE_LENS_POSITION
+from inference_cnn import load_model_and_labels, inference_results, model, class_labels
 
 file_write_lock = threading.Lock()
 app = Flask(__name__)
@@ -177,7 +179,7 @@ def get_dobot_position():
 # Move to start photo position
 @app.route("/move_to_start_foto_pos", methods=["POST"])
 def move_to_start_foto_pos():
-    requests.get("http://localhost:8000/set_lens_position/2.0")
+    requests.get("http://localhost:8000/set_lens_position/"+str(OVERVIEW_IMAGE_LENS_POSITION))
     dobot.dashboard.EnableRobot(0.325, 0.0, 0.0, 0.0)
 
     dobot_coords = request.get_json()
@@ -248,8 +250,11 @@ def list_detail_images():
 @app.route("/find_contours", methods=["GET"])
 def find_contours():
     set_calibration_values()
-    marker_coord = calib_values["marker_coord"]
-    print (marker_coord, '*************************************')
+    response = requests.get("http://localhost:8000/get_aruco_marker")
+    response.raise_for_status()
+    marker_coord = response.json()
+    print("marker_coord")
+    print(marker_coord)
     global obj_pixel_coord
     trans_foto = image_processing.pres_crop_four_points(
         "./images/original_foto.jpg", marker_coord
@@ -261,53 +266,76 @@ def find_contours():
 # Start the process
 @app.route("/start_process", methods=["POST"])
 def start_process():
+    # Alte Bilder löschen
+    delete_detail_images()
+
+    # Dobot aktivieren
+    dobot.dashboard.EnableRobot(0.500, 0.0, 0.0, 0.0)
+
     # Request-Daten
     data = request.get_json() or {}
     ai_detection = data.get("ai_detection", False)
     objects = data.get("objects", [])
 
-    # Sofortige Eingabekontrolle & Validation
-    if not objects:
-        return jsonify({"error": "No objects provided."}), 400
-
-    # Dobot-Error prüfen
+    # Dobot-Status prüfen
     dobot_mode = dobot.dashboard.RobotMode()
-    if dobot_mode == 9:
-        return jsonify({"error": "Robot is currently in error mode and cannot move."}), 400
 
-    # Sofort Response schicken
-    thread = Thread(target=background_worker, args=(ai_detection, objects))
-    thread.daemon = True
-    thread.start()
+    # --- AI Detection DEAKTIVIERT ---
+    if not ai_detection:
+        if not objects or len(objects) == 0:
+            return jsonify({"error": "No drop position provided for default object."}), 400
 
-    return jsonify({
-        "status": "ok",
-        "message": "Process started in background."
-    })
+        default_obj = objects[0]
+        name = default_obj.get("name", "Unknown")
+        drop_pos = default_obj.get("drop_position")
 
-def background_worker(ai_detection, objects):
-    try:
-        delete_detail_images()
-        dobot.dashboard.EnableRobot(0.500, 0.0, 0.0, 0.0)
+        if not drop_pos or len(drop_pos) != 3:
+            return jsonify({"error": f"Invalid drop position for {name}."}), 400
 
+        if dobot_mode == 9:
+            return jsonify({"error": "Robot is currently in error mode and cannot move."}), 400
+
+        # --- Bewegung starten ---
+        print("obj_pixel_coord")
+        print("obj_pixel_coord")
+        print("obj_pixel_coord")
+        print("obj_pixel_coord")
+        print(obj_pixel_coord)
+        print("---------------------------------------------")
         world_coord = control.prep_coords(list(obj_pixel_coord.values()), calib_values)
         foto_pos = calib_values["dobot_foto_pos"]
 
-        if not ai_detection:
-            # AI Detection AUS
-            default_obj = objects[0]
-            name = default_obj.get("name", "Unknown")
-            control.move_to_object(world_coord, -138, -90.50, dobot, foto_pos, objects)
-            print(f"[THREAD] Move to {name} finished.")
+        # Übergibt jetzt auch objects
+        control.move_to_object(world_coord, GRIP_Z_POSITION, -90.50, dobot, foto_pos, objects)
 
-        else:
-            # AI Detection EIN
-            control.capture_detail_picture(world_coord, -138, -90.50, dobot, foto_pos, objects)
-            print("[THREAD] AI detection process finished.")
+        return jsonify({
+            "status": "ok",
+            "message": f"Moved to {name} (AI disabled)."
+        })
 
-    except Exception as e:
-        print("[THREAD] ERROR:", e)
+    # --- AI Detection AKTIVIERT ---
+    else:
+        if not objects or len(objects) == 0:
+            return jsonify({"error": "No objects selected for sorting."}), 400
 
+        if dobot_mode == 9:
+            return jsonify({"error": "Robot is currently in error mode and cannot move."}), 400
+
+        invalids = [obj for obj in objects if "drop_position" not in obj or len(obj["drop_position"]) != 3]
+        if invalids:
+            names = ", ".join(o.get("name", "?") for o in invalids)
+            return jsonify({"error": f"Invalid drop position(s) for: {names}"}), 400
+
+        # --- AI-gestützten Prozess starten ---
+        world_coord = control.prep_coords(list(obj_pixel_coord.values()), calib_values)
+        foto_pos = calib_values["dobot_foto_pos"]
+
+        # Übergibt ebenfalls die Objekte an capture_detail_picture
+        control.capture_detail_picture(world_coord, GRIP_Z_POSITION, -90.50, dobot, foto_pos, DETAIL_IMAGE_Z_POSITION, OVERVIEW_IMAGE_LENS_POSITION, DETAIL_IMAGE_LENS_POSITION, objects)
+        return jsonify({
+            "status": "ok",
+            "message": "AI detection process started."
+        })
 
 @app.route("/get_inference_results", methods=["GET"])
 def get_inference_results():
