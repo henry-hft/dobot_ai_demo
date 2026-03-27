@@ -98,7 +98,7 @@ def move_to_drop_position(dobot: dobot_handler, drop_pos):
     dobot.moveToPoint(drop_pos)
     time.sleep(1)
 
-def move_to_photo_position(dobot: dobot_handler, x, y, z = 100):
+def move_to_photo_position(dobot: dobot_handler, x, y, z):
     dobot.moveToPoint([x+50, y, z])
     time.sleep(2)
     response = requests.get("http://localhost:8000/save_current_frame_detail")
@@ -109,26 +109,26 @@ def move_to_photo_position(dobot: dobot_handler, x, y, z = 100):
     top_class, top_prob = infer_image(filename)
     return top_class
  
-def capture_detail_picture(dobot_coord, height_down, height_top, dobot: dobot_handler, photo_position, objects):
-    requests.get("http://localhost:8000/set_lens_position/10.0")
+def capture_detail_picture(dobot_coord, height_down, height_top, dobot: dobot_handler, photo_position, photo_z_position, default_lens_position, detail_image_lens_position, objects):
+    requests.get("http://localhost:8000/set_lens_position/"+str(detail_image_lens_position))
     dobot.setDO(8, 1)
     time.sleep(1)
     ##stop_flag = False
     for x, y, rotation, color in dobot_coord:
         if(x > 205):
-            rotation = calculate_rotation(rotation)
+            rotation = calculate_rotation(rotation) + 90
             x_adjustment = 2
             x += x_adjustment 
             y_adjustment = 2.8 if (y > 50 or y < -50) else 2
             y += y_adjustment
            
-            top_class = move_to_photo_position(dobot, x, y, -125)
+            top_class = move_to_photo_position(dobot, x, y, photo_z_position)
             drop_position = find_drop_position(objects, top_class)
             print("drop_position")
             print(drop_position)
             
             if drop_position:
-                move_to_pick_position(dobot, x, y, rotation, -125)
+                move_to_pick_position(dobot, x, y, rotation, photo_z_position)
                 close_gripper_pick(dobot, x, y, rotation, -125, height_down)
                 move_to_drop_position(dobot, drop_position)
                 dobot.setDO(8, 1)
@@ -136,7 +136,7 @@ def capture_detail_picture(dobot_coord, height_down, height_top, dobot: dobot_ha
     dobot.moveToPoint([photo_position["x"], photo_position["y"], photo_position["z"], 35])
     time.sleep(2)
     dobot.dashboard.DisableRobot()
-    requests.get("http://localhost:8000/set_lens_position/2.0")
+    requests.get("http://localhost:8000/set_lens_position/"+str(default_lens_position))
 
 def move_to_object(dobot_coord, height_down, height_top, dobot: dobot_handler, photo_position, objects):
     dobot.setDO(8, 1)
@@ -146,7 +146,7 @@ def move_to_object(dobot_coord, height_down, height_top, dobot: dobot_handler, p
     
     for x, y, rotation, color in dobot_coord:
         if x > 205:
-            rotation = calculate_rotation(rotation)
+            rotation = calculate_rotation(rotation) + 90
             x += 2
             y += 2.8 if (y > 50 or y < -50) else 2
 
@@ -158,4 +158,3 @@ def move_to_object(dobot_coord, height_down, height_top, dobot: dobot_handler, p
     dobot.moveToPoint([photo_position["x"], photo_position["y"], photo_position["z"], 35])
     time.sleep(2)
     dobot.dashboard.DisableRobot()
-
