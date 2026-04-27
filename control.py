@@ -99,7 +99,7 @@ def move_to_drop_position(dobot: dobot_handler, drop_pos):
     time.sleep(1)
 
 def move_to_photo_position(dobot: dobot_handler, x, y, z):
-    dobot.moveToPoint([x+50, y, z])
+    dobot.moveToPoint([x+70, y, z])
     time.sleep(2)
     response = requests.get("http://localhost:8000/save_current_frame_detail")
     response.raise_for_status()

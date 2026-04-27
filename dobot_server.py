@@ -344,7 +344,7 @@ def start_process():
 
 @app.route("/get_inference_results", methods=["GET"])
 def get_inference_results():
-    inference_results_converted = convert_floats(inference_results)
+    inference_results_converted = convert_floats(inference_cnn.inference_results)
     return jsonify(inference_results_converted)
     
 def load_drop_positions():

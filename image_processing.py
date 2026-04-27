@@ -163,33 +163,32 @@ def FindDetailContours(ImageSrc, OrgImageSrc, MinSize=10000):
 
     return result
 
-def ExtractScrew(OrgImageSrc, arr, padding = 20):
-  img = OrgImageSrc.copy()
-  for i in range(4):
-    arr[i][0] -= padding
-    arr[i][1] += padding
+def ExtractScrew(OrgImageSrc, arr, padding=10):
+    img = OrgImageSrc.copy()
 
-  bounding_boxes = []
-  print("shape of arr: {}".format(arr.shape))
-  rect = cv2.minAreaRect(arr)
-  print("rect: {}".format(rect))
-  box = cv2.boxPoints(rect)
-  box = np.intp(box)
-  print("bounding box: {}".format(box))
+    rect = cv2.minAreaRect(arr)
+    box = cv2.boxPoints(rect).astype("float32")
 
-  width = int(rect[1][0])
-  height = int(rect[1][1])
+    width = int(rect[1][0])
+    height = int(rect[1][1])
 
-  src_pts = box.astype("float32")
+    # Zielbild mit Padding außen herum
+    new_width = width + 2 * padding
+    new_height = height + 2 * padding
 
-  dst_pts = np.array([[0, height-1],
-                      [0, 0],
-                      [width-1, 0],
-                      [width-1, height-1]], dtype="float32")
+    src_pts = box.astype("float32")
 
-  M = cv2.getPerspectiveTransform(src_pts, dst_pts)
-  warped = cv2.warpPerspective(img, M, (width, height))
-  return warped
+    dst_pts = np.array([
+        [padding, new_height - padding - 1],
+        [padding, padding],
+        [new_width - padding - 1, padding],
+        [new_width - padding - 1, new_height - padding - 1]
+    ], dtype="float32")
+
+    M = cv2.getPerspectiveTransform(src_pts, dst_pts)
+    warped = cv2.warpPerspective(img, M, (new_width, new_height))
+
+    return warped
 
 def IsolateObject(img, image_size=180):
     h, w = img.shape[:2]
