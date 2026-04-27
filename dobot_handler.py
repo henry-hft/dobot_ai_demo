@@ -49,17 +49,17 @@ class dobot_handler:
         return [0,0,0,0]
 
     def moveToPoint(self, point_list: list):
-      #  move = self.move.MovL(
-      #          point_list[0], point_list[1], point_list[2], point_list[3], 0, 0, 0)
-      #  print("MovL ", move)
-      #  commandArrID = self.parseResultId(move)
-      #  return commandArrID
-        
         if len(point_list) == 3:
             current_position = self.getPosition()
             point_list.append(current_position[3])
         elif len(point_list) != 4:
             raise ValueError("point_list must have either 3 or 4 elements.")
+
+        # Winkel anpassen
+        if point_list[3] < -45:
+            point_list[3] += 180
+        elif point_list[3] > 135:
+            point_list[3] -= 180
 
         move = self.move.MovL(
             point_list[0], point_list[1], point_list[2], point_list[3], 0, 0, 0)
