@@ -100,7 +100,18 @@ virtualenv --system-site-packages dobot
 source dobot/bin/activate
 
 # Install Python packages via pip
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+python -m pip install --upgrade scipy
+python -m pip install --upgrade cython
+python -m pip install imutils
+python -m pip install tensorflow
+python -m pip install keras
+python -m pip install opencv-python
+python -m pip install flask
+python -m pip install matplotlib
+python -m pip install wheel
+python -m pip install rpi-libcamera
+python -m pip install rpi-kms
+python -m pip install picamera2
+python -m pip install numpy==1.26.4
 
 sudo chown -R pi .

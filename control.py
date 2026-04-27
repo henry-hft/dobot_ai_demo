@@ -109,14 +109,14 @@ def move_to_photo_position(dobot: dobot_handler, x, y, z):
     top_class, top_prob = infer_image(filename)
     return top_class
  
-def capture_detail_picture(dobot_coord, height_down, height_top, dobot: dobot_handler, photo_position, photo_z_position, default_lens_position, detail_image_lens_position, objects):
+def capture_detail_picture(dobot_coord, height_down, height_top, dobot: dobot_handler, photo_position, photo_z_position, default_lens_position, detail_image_lens_position, gripper_rotation_offset, objects):
     requests.get("http://localhost:8000/set_lens_position/"+str(detail_image_lens_position))
     dobot.setDO(8, 1)
     time.sleep(1)
     ##stop_flag = False
     for x, y, rotation, color in dobot_coord:
         if(x > 205):
-            rotation = calculate_rotation(rotation) + 90
+            rotation = calculate_rotation(rotation) + gripper_rotation_offset
             x_adjustment = 2
             x += x_adjustment 
             y_adjustment = 2.8 if (y > 50 or y < -50) else 2
@@ -138,7 +138,7 @@ def capture_detail_picture(dobot_coord, height_down, height_top, dobot: dobot_ha
     dobot.dashboard.DisableRobot()
     requests.get("http://localhost:8000/set_lens_position/"+str(default_lens_position))
 
-def move_to_object(dobot_coord, height_down, height_top, dobot: dobot_handler, photo_position, objects):
+def move_to_object(dobot_coord, height_down, height_top, dobot: dobot_handler, photo_position, gripper_rotation_offset, objects):
     dobot.setDO(8, 1)
     time.sleep(0.5)
     
@@ -146,7 +146,7 @@ def move_to_object(dobot_coord, height_down, height_top, dobot: dobot_handler, p
     
     for x, y, rotation, color in dobot_coord:
         if x > 205:
-            rotation = calculate_rotation(rotation) + 90
+            rotation = calculate_rotation(rotation) + gripper_rotation_offset
             x += 2
             y += 2.8 if (y > 50 or y < -50) else 2
 
@@ -158,3 +158,4 @@ def move_to_object(dobot_coord, height_down, height_top, dobot: dobot_handler, p
     dobot.moveToPoint([photo_position["x"], photo_position["y"], photo_position["z"], 35])
     time.sleep(2)
     dobot.dashboard.DisableRobot()
+

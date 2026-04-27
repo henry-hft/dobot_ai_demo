@@ -112,9 +112,8 @@
           </div>
           <div class="modal-body" id="errorModalBody"></div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-            <button type="button" class="btn btn-danger" data-dismiss="modal"
-              onclick="clear_error()">Clear Error(s)</button>
+            <button type="button" class="btn btn-danger" data-bs-dismiss="modal"
+              onclick="clear_error()">Clear Error</button>
           </div>
         </div>
       </div>
@@ -131,9 +130,12 @@
         </button>
       </div>
       <div class="col-lg-1 text-end">
-        <button class="btn btn-danger btn-sm fw-bold" onclick="get_error_message()" data-toggle="modal" data-target="#errorModal">
-          <i class="fas fa-exclamation-triangle me-1"></i> Error Log
-        </button>
+       <button class="btn btn-danger btn-sm fw-bold"
+        onclick="get_error_message()"
+        data-toggle="modal"
+        data-target="#errorModal">
+        <i class="fas fa-exclamation-triangle me-1"></i> Error Log
+      </button>
       </div>
       <div class="col-lg-1 text-start">
         <div class="form-check form-switch">
@@ -167,7 +169,7 @@
               </li>
               <li class="nav-item mb-1">
                 <button class="nav-link btn" onclick="show_web_page('webpageFrame', 'object_classification.html')">
-                  <i class="fas fa-filter"></i>Object Classification
+                  <i class="fas fa-filter"></i>AI Object Classification
                 </button>
               </li>
               <li class="nav-item mb-1">

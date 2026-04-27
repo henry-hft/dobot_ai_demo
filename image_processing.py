@@ -155,15 +155,15 @@ def FindDetailContours(ImageSrc, OrgImageSrc, MinSize=10000):
 
     if len(center_points) > 0:
         centerObj = FindCenterObject(center_points, (w / 2, h / 2), boxes)
-        screw = ExtractScrew(OrgImageSrc, centerObj)
-        result = IsolateObject(screw)
+        result = ExtractScrew(OrgImageSrc, centerObj)
+        #result = IsolateObject(screw)
     else:
         print(f"[INFO] No screw found")
         result = img  # or: result = None
 
     return result
 
-def ExtractScrew(OrgImageSrc, arr, padding = 10):
+def ExtractScrew(OrgImageSrc, arr, padding = 20):
   img = OrgImageSrc.copy()
   for i in range(4):
     arr[i][0] -= padding
@@ -420,6 +420,12 @@ def obj_recognition(image_or_path):
     result = {k: (contour_lines_mid[k], center_coordinates_map[k][1], center_coordinates_map[k][2]) for k in contour_lines_mid}
     return result
     
+def resize_stretch(img, target_size=(224, 224)):
+    target_h, target_w = target_size
+    resized = cv2.resize(img, (target_w, target_h), interpolation=cv2.INTER_LINEAR)
+    return resized
+
+# old unused function
 def resize_with_padding(img, target_size=(180,180), pad_value=0):
     h, w = img.shape[:2]
     if h > w:
@@ -458,9 +464,10 @@ def obj_classification(path):
     morph = MorphOperation(thresh, True)
     canny = AutoCanny(morph, True)
     contours = FindDetailContours(canny, img)
-    padding = resize_with_padding(contours)
+    stretch = resize_stretch(contours)
+    #padding = resize_with_padding(contours)
     #p = Path(path)
     #filename = p.with_name(p.stem + "_preprocessed" + p.suffix)
     new_path = path.replace("unclassified", "preprocessed")
-    cv2.imwrite(new_path, padding)
+    cv2.imwrite(new_path, stretch) # old: cv2.imwrite(new_path, padding)
     return new_path

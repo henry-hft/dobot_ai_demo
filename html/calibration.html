@@ -61,7 +61,7 @@
                 <div class="form-check">
                     <input class="form-check-input" type="radio" name="action" id="moveToDefault" value="moveToDefault" checked>
                     <label class="form-check-label" for="moveToDefault">
-                        Move Dobot to Standard Position <span class="form-label coordiantes-text" id="standCoorText"></span>
+                        Move Dobot to Default Position <span class="form-label coordiantes-text" id="standCoorText"></span>
                     </label>
                 </div>
 
@@ -73,7 +73,7 @@
                             <label for="inputCoorX" class="form-label">X:</label>
                         </div>
                         <div class="col-auto">
-                            <input type="number" class="form-control form-control-sm" id="inputCoorX" placeholder="X" value="327.64">
+                            <input type="number" class="form-control form-control-sm" id="inputCoorX" placeholder="X">
                         </div>
 
                         <!-- Y Coordinate Input -->
@@ -81,7 +81,7 @@
                             <label for="inputCoorY" class="form-label">Y:</label>
                         </div>
                         <div class="col-auto">
-                            <input type="number" class="form-control form-control-sm" id="inputCoorY" placeholder="Y" value="-7.62">
+                            <input type="number" class="form-control form-control-sm" id="inputCoorY" placeholder="Y">
                         </div>
                     </div>
 
@@ -91,7 +91,7 @@
                             <label for="inputCoorZ" class="form-label">Z:</label>
                         </div>
                         <div class="col-auto">
-                            <input type="number" class="form-control form-control-sm" id="inputCoorZ" placeholder="Z" value="180.60">
+                            <input type="number" class="form-control form-control-sm" id="inputCoorZ" placeholder="Z">
                         </div>
 
                         <!-- R Coordinate Input -->
@@ -99,7 +99,7 @@
                             <label for="inputCoorR" class="form-label">R:</label>
                         </div>
                         <div class="col-auto">
-                            <input type="number" class="form-control form-control-sm" id="inputCoorR" placeholder="R" value="35">
+                            <input type="number" class="form-control form-control-sm" id="inputCoorR" placeholder="R">
                         </div>
                     </div>
                 </div>
@@ -257,6 +257,21 @@
     var marker2 = document.getElementById("marker2");
     var marker3 = document.getElementById("marker3");
     var marker4 = document.getElementById("marker4");
+    
+    document.addEventListener("DOMContentLoaded", () => {
+    fetch("http://localhost:5000/photo_position")
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById("inputCoorX").value = data[0];
+            document.getElementById("inputCoorY").value = data[1];
+            document.getElementById("inputCoorZ").value = data[2];
+            document.getElementById("inputCoorR").value = data[3];
+            update_voord_values()
+        })
+        .catch(error => {
+            console.error("Could not load default photo position values:", error);
+        });
+});
 
 
     // Function to update coordinate values
