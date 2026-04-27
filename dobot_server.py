@@ -12,8 +12,8 @@ import requests
 from tensorflow import keras
 import numpy as np
 from PIL import Image
-from config import MODEL_PATH, LABELS_PATH, DOBOT_MODES, IMAGE_DIR, GRIP_Z_POSITION, DETAIL_IMAGE_Z_POSITION, OVERVIEW_IMAGE_LENS_POSITION, DETAIL_IMAGE_LENS_POSITION
-from inference_cnn import load_model_and_labels, inference_results, model, class_labels
+from config import DOBOT_PHOTO_POSITION, GRIPPER_ROTATION_OFFSET, MODEL_PATH, LABELS_PATH, DOBOT_MODES, IMAGE_DIR, GRIP_Z_POSITION, DETAIL_IMAGE_Z_POSITION, OVERVIEW_IMAGE_LENS_POSITION, DETAIL_IMAGE_LENS_POSITION
+import inference_cnn
 
 file_write_lock = threading.Lock()
 app = Flask(__name__)
@@ -100,6 +100,11 @@ def stopProcess():
     stop_process_flag = True
     print(stop_process_flag, 'in the server')
     return jsonify({"message": "stop process."}) """
+    
+# get default Dobot position
+@app.route("/photo_position", methods=["GET"])
+def photoPosition():
+    return jsonify(DOBOT_PHOTO_POSITION)
 
 # Clear Dobot error
 @app.route("/clear_error", methods=["GET"])
@@ -220,7 +225,7 @@ def save_camera_settings():
 # Save Dobot settings
 @app.route("/send_dobot_params", methods=["POST"])
 def send_dobot_params():
-    data = request.get_json()/get_inference_results
+    data = request.get_json()
     threading.Thread(target=write_to_file, args=(data, "dobot_settings.json")).start()
     response_data = {"message": "Received JSON object and started processing."}
     return jsonify(response_data), 200
@@ -306,7 +311,7 @@ def start_process():
         foto_pos = calib_values["dobot_foto_pos"]
 
         # Übergibt jetzt auch objects
-        control.move_to_object(world_coord, GRIP_Z_POSITION, -90.50, dobot, foto_pos, objects)
+        control.move_to_object(world_coord, GRIP_Z_POSITION, -90.50, dobot, foto_pos, GRIPPER_ROTATION_OFFSET, objects)
 
         return jsonify({
             "status": "ok",
@@ -331,7 +336,7 @@ def start_process():
         foto_pos = calib_values["dobot_foto_pos"]
 
         # Übergibt ebenfalls die Objekte an capture_detail_picture
-        control.capture_detail_picture(world_coord, GRIP_Z_POSITION, -90.50, dobot, foto_pos, DETAIL_IMAGE_Z_POSITION, OVERVIEW_IMAGE_LENS_POSITION, DETAIL_IMAGE_LENS_POSITION, objects)
+        control.capture_detail_picture(world_coord, GRIP_Z_POSITION, -90.50, dobot, foto_pos, DETAIL_IMAGE_Z_POSITION, OVERVIEW_IMAGE_LENS_POSITION, DETAIL_IMAGE_LENS_POSITION, GRIPPER_ROTATION_OFFSET, objects)
         return jsonify({
             "status": "ok",
             "message": "AI detection process started."
@@ -378,9 +383,8 @@ def convert_floats(data):
         return data
 
 if __name__ == "__main__":
-    #app.run(host="192.168.11.151", port=5000)
     load_dobot_modes()
-    model, class_labels = load_model_and_labels()
+    inference_cnn.model, inference_cnn.class_labels = inference_cnn.load_model_and_labels()
     setup_dobot()
     setup_calibration()
     delete_detail_images()
