@@ -1,7 +1,6 @@
 import numpy as np 
 import time
 import requests
-import json
 from dobot_handler import dobot_handler
 from inference_cnn import infer_image
 
@@ -113,7 +112,6 @@ def capture_detail_picture(dobot_coord, height_down, height_top, dobot: dobot_ha
     requests.get("http://localhost:8000/set_lens_position/"+str(detail_image_lens_position))
     dobot.setDO(8, 1)
     time.sleep(1)
-    ##stop_flag = False
     for x, y, rotation, color in dobot_coord:
         if(x > 205):
             rotation = calculate_rotation(rotation) + gripper_rotation_offset
@@ -124,14 +122,14 @@ def capture_detail_picture(dobot_coord, height_down, height_top, dobot: dobot_ha
            
             top_class = move_to_photo_position(dobot, x, y, photo_z_position)
             drop_position = find_drop_position(objects, top_class)
-            print("drop_position")
-            print(drop_position)
             
             if drop_position:
                 move_to_pick_position(dobot, x, y, rotation, photo_z_position)
                 close_gripper_pick(dobot, x, y, rotation, -125, height_down)
+                dobot.moveToZ(-110)
                 move_to_drop_position(dobot, drop_position)
                 dobot.setDO(8, 1)
+                dobot.moveToZ(-110)
     
     dobot.moveToPoint([photo_position["x"], photo_position["y"], photo_position["z"], 35])
     time.sleep(2)

@@ -47,6 +47,15 @@ class dobot_handler:
             values_array = [float(val) for val in values_str.split(',')]
             return(values_array)
         return [0,0,0,0]
+    
+    def moveToZ(self, z_value):
+        current_position = self.getPosition()
+        if len(current_position) != 4:
+            raise ValueError("Current position must contain 4 elements.")
+
+        new_position = current_position.copy()
+        new_position[2] = z_value
+        self.moveToPoint(new_position)
 
     def moveToPoint(self, point_list: list):
         if len(point_list) == 3:
